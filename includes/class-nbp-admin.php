@@ -16,6 +16,7 @@ class NBP_Admin {
      */
     public function __construct() {
         add_action('admin_init', array($this, 'handle_manual_trigger'));
+        add_action('admin_init', array($this, 'handle_clear_buffer'));
     }
 
     /**
@@ -69,10 +70,18 @@ class NBP_Admin {
                         </tr>
                     </table>
 
-                    <form method="post" style="margin-top: 20px;">
+                    <form method="post" style="margin-top: 20px; display: inline-block;">
                         <?php wp_nonce_field('nbp_manual_trigger', 'nbp_nonce'); ?>
                         <button type="submit" name="nbp_trigger_poll" class="button button-primary">
                             Trigger Poll Now
+                        </button>
+                    </form>
+
+                    <form method="post" style="margin-left: 10px; display: inline-block;">
+                        <?php wp_nonce_field('nbp_clear_buffer', 'nbp_clear_nonce'); ?>
+                        <button type="submit" name="nbp_clear_buffer" class="button"
+                                onclick="return confirm('Are you sure you want to clear the buffer? This will remove all pending booking changes.');">
+                            Clear Buffer (Testing)
                         </button>
                     </form>
                 </div>
@@ -305,6 +314,39 @@ class NBP_Admin {
 
         // Refresh the page to show updated stats
         wp_safe_redirect(add_query_arg('poll_triggered', '1', wp_get_referer()));
+        exit;
+    }
+
+    /**
+     * Handle buffer clear
+     */
+    public function handle_clear_buffer() {
+        if (!isset($_POST['nbp_clear_buffer'])) {
+            return;
+        }
+
+        if (!wp_verify_nonce($_POST['nbp_clear_nonce'], 'nbp_clear_buffer')) {
+            return;
+        }
+
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        // Clear the buffer
+        global $wpdb;
+        $table = $wpdb->prefix . NBP_TABLE_PREFIX . 'change_buffer';
+        $deleted = $wpdb->query("TRUNCATE TABLE {$table}");
+
+        // Show success notice
+        add_action('admin_notices', function() use ($deleted) {
+            echo '<div class="notice notice-success is-dismissible"><p>';
+            echo 'Buffer cleared successfully!';
+            echo '</p></div>';
+        });
+
+        // Refresh the page to show updated stats
+        wp_safe_redirect(add_query_arg('buffer_cleared', '1', wp_get_referer()));
         exit;
     }
 }
