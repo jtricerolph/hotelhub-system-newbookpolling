@@ -81,6 +81,11 @@ class NBP_Poller {
 
             // Store changes in buffer
             if (!empty($response['data']) && is_array($response['data'])) {
+                // Log first booking structure for debugging
+                if (count($response['data']) > 0) {
+                    error_log('[NBP] Sample booking fields: ' . implode(', ', array_keys($response['data'][0])));
+                }
+
                 $stored_count = $this->store_changes($location_id, $response['data']);
 
                 // Log success
