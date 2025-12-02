@@ -118,13 +118,13 @@ class NBP_Poller {
         $failed_inserts = 0;
 
         foreach ($bookings as $booking) {
-            // Validate required fields
-            if (empty($booking['booking_id']) || empty($booking['arrival_date']) || empty($booking['departure_date'])) {
+            // Validate required fields (NewBook uses booking_arrival and booking_departure)
+            if (empty($booking['booking_id']) || empty($booking['booking_arrival']) || empty($booking['booking_departure'])) {
                 $skipped_missing_fields++;
                 error_log('[NBP] Skipped booking - missing required fields: ' . json_encode(array(
                     'booking_id' => isset($booking['booking_id']) ? $booking['booking_id'] : 'missing',
-                    'arrival_date' => isset($booking['arrival_date']) ? $booking['arrival_date'] : 'missing',
-                    'departure_date' => isset($booking['departure_date']) ? $booking['departure_date'] : 'missing'
+                    'booking_arrival' => isset($booking['booking_arrival']) ? $booking['booking_arrival'] : 'missing',
+                    'booking_departure' => isset($booking['booking_departure']) ? $booking['booking_departure'] : 'missing'
                 )));
                 continue;
             }
@@ -145,15 +145,15 @@ class NBP_Poller {
                 continue;
             }
 
-            // Insert into buffer
+            // Insert into buffer (extract date from booking_arrival/booking_departure datetime fields)
             $result = $wpdb->insert(
                 $table,
                 array(
                     'location_id'    => $location_id,
                     'booking_id'     => $booking['booking_id'],
                     'booking_data'   => json_encode($booking),
-                    'arrival_date'   => date('Y-m-d', strtotime($booking['arrival_date'])),
-                    'departure_date' => date('Y-m-d', strtotime($booking['departure_date'])),
+                    'arrival_date'   => date('Y-m-d', strtotime($booking['booking_arrival'])),
+                    'departure_date' => date('Y-m-d', strtotime($booking['booking_departure'])),
                     'detected_at'    => current_time('mysql')
                 ),
                 array('%d', '%s', '%s', '%s', '%s', '%s')
