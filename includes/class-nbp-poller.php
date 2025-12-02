@@ -129,7 +129,7 @@ class NBP_Poller {
                 continue;
             }
 
-            // Check if this booking is already in buffer (recent duplicate)
+            // Check if this booking is already in buffer (recent duplicate within last 5 minutes)
             $existing = $wpdb->get_var($wpdb->prepare(
                 "SELECT id FROM {$table}
                  WHERE location_id = %d
@@ -137,7 +137,7 @@ class NBP_Poller {
                  AND detected_at > %s",
                 $location_id,
                 $booking['booking_id'],
-                date('Y-m-d H:i:s', strtotime('-30 seconds'))
+                date('Y-m-d H:i:s', strtotime('-5 minutes'))
             ));
 
             if ($existing) {
