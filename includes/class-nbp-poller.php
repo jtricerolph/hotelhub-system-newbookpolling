@@ -55,13 +55,21 @@ class NBP_Poller {
             return;
         }
 
+        // Get decrypted settings
+        $settings = hha()->integrations->get_settings($location_id, 'newbook');
+
+        if (!$settings) {
+            error_log('[NBP] No NewBook settings found for location ' . $location_id);
+            return;
+        }
+
         // Get last check time (default to 2 minutes ago for first run)
         $option_key = 'nbp_last_check_' . $location_id;
         $last_check = get_option($option_key, date('Y-m-d H:i:s', strtotime('-2 minutes')));
 
         try {
             // Initialize NewBook API
-            $api = new HHA_NewBook_API($integration->settings);
+            $api = new HHA_NewBook_API($settings);
 
             // Poll for changes using list_type:all
             $response = $api->get_bookings(
