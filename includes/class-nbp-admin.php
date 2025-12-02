@@ -199,6 +199,46 @@ class NBP_Admin {
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
+
+                <!-- Server Cron Setup Instructions -->
+                <div class="nbp-card">
+                    <h2>⚙️ Server Cron Configuration (Recommended)</h2>
+                    <p><strong>Why use server cron?</strong> WordPress WP-Cron relies on site traffic to trigger. For critical polling like NewBook updates, a real server cron job ensures reliable execution every 60 seconds, even with zero site traffic.</p>
+
+                    <h3 style="margin-top: 20px;">Step 1: Disable WordPress Cron</h3>
+                    <p>Add this line to your <code>wp-config.php</code> file (before "That's all, stop editing!"):</p>
+                    <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto;">define('DISABLE_WP_CRON', true);</pre>
+
+                    <h3 style="margin-top: 20px;">Step 2: Add Server Cron Job</h3>
+                    <p>Add one of the following to your server's crontab. Choose the method that works for your hosting:</p>
+
+                    <h4>Option A: Using wget (Most Compatible)</h4>
+                    <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto;">* * * * * wget -q -O - <?php echo esc_url(site_url('wp-cron.php?doing_wp_cron')); ?> >/dev/null 2>&1</pre>
+
+                    <h4>Option B: Using curl</h4>
+                    <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto;">* * * * * curl -s <?php echo esc_url(site_url('wp-cron.php?doing_wp_cron')); ?> >/dev/null 2>&1</pre>
+
+                    <h4>Option C: Using WP-CLI (Best Performance)</h4>
+                    <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto;">* * * * * cd <?php echo ABSPATH; ?> && wp cron event run --due-now >/dev/null 2>&1</pre>
+
+                    <h3 style="margin-top: 20px;">Step 3: Verify It's Working</h3>
+                    <p>After setting up the cron job:</p>
+                    <ol>
+                        <li>Wait 2-3 minutes</li>
+                        <li>Refresh this page</li>
+                        <li>Check "Last Check" times for each location above</li>
+                        <li>Times should update every ~60 seconds</li>
+                        <li>Buffer Statistics should show new entries (if there are booking changes)</li>
+                    </ol>
+
+                    <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-top: 20px;">
+                        <strong>⚠️ Note:</strong> If you're on shared hosting and don't have crontab access, contact your hosting provider. Most hosts can set this up for you, or they may have a "Cron Jobs" interface in cPanel/Plesk.
+                    </div>
+
+                    <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 12px; margin-top: 20px;">
+                        <strong>💡 Tip:</strong> Even without server cron, the plugin will work via WP-Cron triggered by site traffic. Server cron just makes it more reliable and ensures consistent 60-second intervals.
+                    </div>
+                </div>
             </div>
         </div>
 
