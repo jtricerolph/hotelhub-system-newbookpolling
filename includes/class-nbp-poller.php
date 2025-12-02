@@ -108,10 +108,19 @@ class NBP_Poller {
         $table = $wpdb->prefix . NBP_TABLE_PREFIX . 'change_buffer';
 
         $stored_count = 0;
+        $skipped_missing_fields = 0;
+        $skipped_duplicates = 0;
+        $failed_inserts = 0;
 
         foreach ($bookings as $booking) {
             // Validate required fields
             if (empty($booking['booking_id']) || empty($booking['arrival_date']) || empty($booking['departure_date'])) {
+                $skipped_missing_fields++;
+                error_log('[NBP] Skipped booking - missing required fields: ' . json_encode(array(
+                    'booking_id' => isset($booking['booking_id']) ? $booking['booking_id'] : 'missing',
+                    'arrival_date' => isset($booking['arrival_date']) ? $booking['arrival_date'] : 'missing',
+                    'departure_date' => isset($booking['departure_date']) ? $booking['departure_date'] : 'missing'
+                )));
                 continue;
             }
 
@@ -127,7 +136,8 @@ class NBP_Poller {
             ));
 
             if ($existing) {
-                continue; // Skip recent duplicates
+                $skipped_duplicates++;
+                continue;
             }
 
             // Insert into buffer
@@ -146,7 +156,22 @@ class NBP_Poller {
 
             if ($result) {
                 $stored_count++;
+            } else {
+                $failed_inserts++;
+                error_log('[NBP] Failed to insert booking ' . $booking['booking_id'] . ': ' . $wpdb->last_error);
             }
+        }
+
+        // Log summary
+        if ($skipped_missing_fields > 0 || $skipped_duplicates > 0 || $failed_inserts > 0) {
+            error_log(sprintf(
+                '[NBP] Location %d buffer summary - Stored: %d, Skipped (missing fields): %d, Skipped (duplicates): %d, Failed: %d',
+                $location_id,
+                $stored_count,
+                $skipped_missing_fields,
+                $skipped_duplicates,
+                $failed_inserts
+            ));
         }
 
         return $stored_count;
