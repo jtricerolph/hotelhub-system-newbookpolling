@@ -82,7 +82,7 @@ class NBP_Core {
         add_filter('cron_schedules', array($this, 'add_cron_schedule'));
 
         // Register with Hotel Hub
-        add_filter('hha_register_modules', array($this, 'register_with_hotel_hub'));
+        add_action('hha_register_modules', array($this, 'register_with_hotel_hub'));
     }
 
     /**
@@ -100,12 +100,23 @@ class NBP_Core {
      * Register module with Hotel Hub
      */
     public function register_with_hotel_hub($modules) {
-        $modules['newbook-polling'] = array(
+        $modules->register_module($this);
+    }
+
+    /**
+     * Get module configuration
+     * Required by Hotel Hub module system
+     */
+    public function get_config() {
+        return array(
+            'id'          => 'newbook-polling',
             'name'        => 'NewBook Polling',
             'description' => 'Real-time NewBook API change detection and distribution service',
             'version'     => NBP_VERSION,
             'department'  => 'System',
             'icon'        => 'sync',
+            'color'       => '#8b5cf6',
+            'order'       => 999,
             'settings_pages' => array(
                 array(
                     'slug'       => 'nbp-settings',
@@ -115,7 +126,5 @@ class NBP_Core {
                 )
             )
         );
-
-        return $modules;
     }
 }
