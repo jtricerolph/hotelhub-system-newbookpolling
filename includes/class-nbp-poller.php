@@ -129,20 +129,46 @@ class NBP_Poller {
                 continue;
             }
 
-            // Check if this booking is already in buffer (recent duplicate within last 5 minutes)
-            $existing = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM {$table}
+            // Check if this exact booking data is already in buffer (avoid storing identical data)
+            // We'll check for the same booking_id with the same key fields within the last 5 minutes
+            $booking_hash = md5(json_encode(array(
+                'booking_id' => $booking['booking_id'],
+                'booking_status' => isset($booking['booking_status']) ? $booking['booking_status'] : '',
+                'booking_modified' => isset($booking['booking_modified']) ? $booking['booking_modified'] : '',
+                'site_status' => isset($booking['site_status']) ? $booking['site_status'] : '',
+                'booking_checkedin' => isset($booking['booking_checkedin']) ? $booking['booking_checkedin'] : '',
+                'booking_checkedout' => isset($booking['booking_checkedout']) ? $booking['booking_checkedout'] : ''
+            )));
+
+            $existing = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, booking_data FROM {$table}
                  WHERE location_id = %d
                  AND booking_id = %s
-                 AND detected_at > %s",
+                 AND detected_at > %s
+                 ORDER BY detected_at DESC
+                 LIMIT 1",
                 $location_id,
                 $booking['booking_id'],
                 date('Y-m-d H:i:s', strtotime('-5 minutes'))
             ));
 
             if ($existing) {
-                $skipped_duplicates++;
-                continue;
+                // Check if the data has actually changed
+                $existing_data = json_decode($existing->booking_data, true);
+                $existing_hash = md5(json_encode(array(
+                    'booking_id' => $existing_data['booking_id'],
+                    'booking_status' => isset($existing_data['booking_status']) ? $existing_data['booking_status'] : '',
+                    'booking_modified' => isset($existing_data['booking_modified']) ? $existing_data['booking_modified'] : '',
+                    'site_status' => isset($existing_data['site_status']) ? $existing_data['site_status'] : '',
+                    'booking_checkedin' => isset($existing_data['booking_checkedin']) ? $existing_data['booking_checkedin'] : '',
+                    'booking_checkedout' => isset($existing_data['booking_checkedout']) ? $existing_data['booking_checkedout'] : ''
+                )));
+
+                if ($existing_hash === $booking_hash) {
+                    $skipped_duplicates++;
+                    continue; // Skip only if data hasn't changed
+                }
+                // If data has changed, we'll store the new version
             }
 
             // Insert into buffer (extract date from booking_arrival/booking_departure datetime fields)
