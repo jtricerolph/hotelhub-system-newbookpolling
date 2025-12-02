@@ -52,6 +52,9 @@ class NBP_Activator {
      * Schedule WP-Cron events
      */
     private static function schedule_cron_events() {
+        // Register custom schedule temporarily for activation
+        add_filter('cron_schedules', array(__CLASS__, 'add_cron_schedule_temp'));
+
         // Schedule polling event (every 60 seconds)
         if (!wp_next_scheduled('nbp_poll_newbook')) {
             wp_schedule_event(time(), 'nbp_one_minute', 'nbp_poll_newbook');
@@ -61,6 +64,20 @@ class NBP_Activator {
         if (!wp_next_scheduled('nbp_cleanup_buffer')) {
             wp_schedule_event(time(), 'hourly', 'nbp_cleanup_buffer');
         }
+
+        // Remove temporary filter
+        remove_filter('cron_schedules', array(__CLASS__, 'add_cron_schedule_temp'));
+    }
+
+    /**
+     * Temporary cron schedule registration for activation
+     */
+    public static function add_cron_schedule_temp($schedules) {
+        $schedules['nbp_one_minute'] = array(
+            'interval' => 60,
+            'display'  => __('Every Minute', 'nbp')
+        );
+        return $schedules;
     }
 
     /**
